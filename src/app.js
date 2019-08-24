@@ -1,6 +1,8 @@
 const path = require('path')
 const express = require('express')
 const hbs = require('hbs')
+const getIP = require('external-ip')();
+var geoip = require('geoip-lite');
 const geocode = require('./utils/geocode')
 const forecast = require('./utils/forecast')
 
@@ -20,10 +22,42 @@ hbs.registerPartials(partialsPath)
 app.use(express.static(publicDirectoryPath))
 
 app.get('', (req, res) => {
-    res.render('index', {
-        title: 'Weather',
-        name: 'Billal Hossain'
-    })
+
+
+    // res.render('index', {
+    //     title: 'Weather',
+    //     name: 'Billal Hossain'
+    // })
+
+    getIP((err, ip) => {
+        if (err) {
+            throw err;
+        }
+        var geo = geoip.lookup(ip);
+        myip = geo.city;
+
+        geocode(myip, (error, { latitude, longitude, location } = {}) => {
+            if (error) {
+                return res.send({ error })
+            }
+    
+            forecast(latitude, longitude, (error, forecastData) => {
+                if (error) {
+                    return res.send({ error })
+                }
+                res.render('index',{
+                    forecast: forecastData,  
+                    location: location,          
+                    title: 'Weather',
+                    name: 'Billal Hossain'
+                })
+            })
+        })
+        
+    });
+   
+
+
 })
 
 app.get('/about', (req, res) => {
